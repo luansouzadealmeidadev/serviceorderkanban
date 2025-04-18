@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QGroupBox, 
-                            QListWidget, QLabel, QListWidgetItem)
+                            QListWidget, QLabel, QListWidgetItem, QFrame)
 from PyQt5.QtCore import Qt, pyqtSignal
 import sqlite3
 
@@ -15,8 +15,18 @@ class KanbanView(QWidget):
         # Coluna "Aberto"
         self.gb_aberto = QGroupBox("Aberto")
         layout_aberto = QVBoxLayout()
+        
+        # Frame para o contador
+        frame_aberto = QFrame()
+        layout_frame_aberto = QHBoxLayout()
+        self.lbl_total_aberto = QLabel("Total: R$ 0,00")
+        layout_frame_aberto.addWidget(self.lbl_total_aberto)
+        frame_aberto.setLayout(layout_frame_aberto)
+        
         self.lw_aberto = QListWidget()
         self.lw_aberto.setDragDropMode(QListWidget.DragDrop)
+        
+        layout_aberto.addWidget(frame_aberto)
         layout_aberto.addWidget(self.lw_aberto)
         self.gb_aberto.setLayout(layout_aberto)
         layout.addWidget(self.gb_aberto)
@@ -24,8 +34,17 @@ class KanbanView(QWidget):
         # Coluna "Em Andamento"
         self.gb_andamento = QGroupBox("Em Andamento")
         layout_andamento = QVBoxLayout()
+        
+        frame_andamento = QFrame()
+        layout_frame_andamento = QHBoxLayout()
+        self.lbl_total_andamento = QLabel("Total: R$ 0,00")
+        layout_frame_andamento.addWidget(self.lbl_total_andamento)
+        frame_andamento.setLayout(layout_frame_andamento)
+        
         self.lw_andamento = QListWidget()
         self.lw_andamento.setDragDropMode(QListWidget.DragDrop)
+        
+        layout_andamento.addWidget(frame_andamento)
         layout_andamento.addWidget(self.lw_andamento)
         self.gb_andamento.setLayout(layout_andamento)
         layout.addWidget(self.gb_andamento)
@@ -33,8 +52,17 @@ class KanbanView(QWidget):
         # Coluna "Concluído"
         self.gb_concluido = QGroupBox("Concluído")
         layout_concluido = QVBoxLayout()
+        
+        frame_concluido = QFrame()
+        layout_frame_concluido = QHBoxLayout()
+        self.lbl_total_concluido = QLabel("Total: R$ 0,00")
+        layout_frame_concluido.addWidget(self.lbl_total_concluido)
+        frame_concluido.setLayout(layout_frame_concluido)
+        
         self.lw_concluido = QListWidget()
         self.lw_concluido.setDragDropMode(QListWidget.DragDrop)
+        
+        layout_concluido.addWidget(frame_concluido)
         layout_concluido.addWidget(self.lw_concluido)
         self.gb_concluido.setLayout(layout_concluido)
         layout.addWidget(self.gb_concluido)
@@ -42,8 +70,17 @@ class KanbanView(QWidget):
         # Coluna "Entregue"
         self.gb_entregue = QGroupBox("Entregue")
         layout_entregue = QVBoxLayout()
+        
+        frame_entregue = QFrame()
+        layout_frame_entregue = QHBoxLayout()
+        self.lbl_total_entregue = QLabel("Total: R$ 0,00")
+        layout_frame_entregue.addWidget(self.lbl_total_entregue)
+        frame_entregue.setLayout(layout_frame_entregue)
+        
         self.lw_entregue = QListWidget()
         self.lw_entregue.setDragDropMode(QListWidget.DragDrop)
+        
+        layout_entregue.addWidget(frame_entregue)
         layout_entregue.addWidget(self.lw_entregue)
         self.gb_entregue.setLayout(layout_entregue)
         layout.addWidget(self.gb_entregue)
@@ -75,8 +112,20 @@ class KanbanView(QWidget):
         ORDER BY os.data_abertura
         ''')
         
+        # Dicionário para armazenar totais
+        totais = {
+            'Aberto': 0,
+            'Em Andamento': 0,
+            'Concluído': 0,
+            'Entregue': 0
+        }
+        
         for os_data in cursor.fetchall():
             os_id, status, cliente, veiculo, valor = os_data
+            
+            # Acumula o valor total por status
+            if status in totais:
+                totais[status] += valor
             
             item = QListWidgetItem()
             widget = QWidget()
@@ -107,6 +156,12 @@ class KanbanView(QWidget):
                 self.lw_entregue.addItem(item)
                 self.lw_entregue.setItemWidget(item, widget)
         
+        # Atualiza os labels com os totais
+        self.lbl_total_aberto.setText(f"Total: R$ {totais['Aberto']:,.2f}")
+        self.lbl_total_andamento.setText(f"Total: R$ {totais['Em Andamento']:,.2f}")
+        self.lbl_total_concluido.setText(f"Total: R$ {totais['Concluído']:,.2f}")
+        self.lbl_total_entregue.setText(f"Total: R$ {totais['Entregue']:,.2f}")
+        
         conn.close()
     
     def atualizar_status(self, novo_status, list_widget):
@@ -124,3 +179,4 @@ class KanbanView(QWidget):
         
         conn.commit()
         conn.close()
+        self.load_kanban_data()  # Recarrega os dados para atualizar os totais
