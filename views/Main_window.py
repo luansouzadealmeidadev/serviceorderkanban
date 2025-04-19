@@ -1,9 +1,11 @@
 from PyQt5.QtWidgets import (QMainWindow, QTabWidget, QWidget, QVBoxLayout, 
                             QPushButton, QTableWidget, QTableWidgetItem, 
-                            QHeaderView, QMessageBox)
+                            QHeaderView)
 from PyQt5.QtCore import Qt
-from .os_form import OSFormWindow
-from .kanbam_view import KanbanView
+from views.os_form import OSFormWindow
+from views.kanbam_view import KanbanView
+from views.clientes_view import ClientesView
+from views.veiculos_view import VeiculosView
 from database import criar_banco_dados
 import sqlite3
 
@@ -16,6 +18,14 @@ class MainWindow(QMainWindow):
         
         self.central_widget = QTabWidget()
         self.setCentralWidget(self.central_widget)
+        
+        # Aba de Clientes
+        self.tab_clientes = ClientesView()
+        self.central_widget.addTab(self.tab_clientes, "Clientes")
+        
+        # Aba de Veículos
+        self.tab_veiculos = VeiculosView()
+        self.central_widget.addTab(self.tab_veiculos, "Veículos")
         
         # Aba de Ordens de Serviço
         self.tab_os = QWidget()
@@ -76,6 +86,4 @@ class MainWindow(QMainWindow):
                 self.table_os.setItem(row_num, col_num, item)
         
         conn.close()
-        
-        # Atualiza também a view Kanban
         self.tab_kanban.load_kanban_data()

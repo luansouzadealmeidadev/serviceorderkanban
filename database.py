@@ -20,21 +20,21 @@ def criar_banco_dados():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS veiculos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        cliente_id INTEGER,
+        cliente_id INTEGER NOT NULL,
         marca TEXT NOT NULL,
         modelo TEXT NOT NULL,
         ano INTEGER,
         placa TEXT UNIQUE,
         km INTEGER,
         cor TEXT,
-        FOREIGN KEY (cliente_id) REFERENCES clientes (id)
+        FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
     )''')
     
     # Tabela de Ordens de Serviço
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS ordens_servico (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        veiculo_id INTEGER,
+        veiculo_id INTEGER NOT NULL,
         data_abertura TEXT,
         data_entrega TEXT,
         descricao_problema TEXT,

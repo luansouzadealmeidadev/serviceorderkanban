@@ -1,9 +1,12 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QGroupBox, 
-                            QListWidget, QLabel, QListWidgetItem, QFrame)
+                            QListWidget, QLabel, QListWidgetItem, QAbstractItemView,
+                            QFrame)
 from PyQt5.QtCore import Qt, pyqtSignal
 import sqlite3
 
 class KanbanView(QWidget):
+    atualizado = pyqtSignal()
+    
     def __init__(self):
         super().__init__()
         self.setup_ui()
@@ -24,7 +27,7 @@ class KanbanView(QWidget):
         frame_aberto.setLayout(layout_frame_aberto)
         
         self.lw_aberto = QListWidget()
-        self.lw_aberto.setDragDropMode(QListWidget.DragDrop)
+        self.lw_aberto.setDragDropMode(QAbstractItemView.DragDrop)
         
         layout_aberto.addWidget(frame_aberto)
         layout_aberto.addWidget(self.lw_aberto)
@@ -42,7 +45,7 @@ class KanbanView(QWidget):
         frame_andamento.setLayout(layout_frame_andamento)
         
         self.lw_andamento = QListWidget()
-        self.lw_andamento.setDragDropMode(QListWidget.DragDrop)
+        self.lw_andamento.setDragDropMode(QAbstractItemView.DragDrop)
         
         layout_andamento.addWidget(frame_andamento)
         layout_andamento.addWidget(self.lw_andamento)
@@ -60,7 +63,7 @@ class KanbanView(QWidget):
         frame_concluido.setLayout(layout_frame_concluido)
         
         self.lw_concluido = QListWidget()
-        self.lw_concluido.setDragDropMode(QListWidget.DragDrop)
+        self.lw_concluido.setDragDropMode(QAbstractItemView.DragDrop)
         
         layout_concluido.addWidget(frame_concluido)
         layout_concluido.addWidget(self.lw_concluido)
@@ -78,7 +81,7 @@ class KanbanView(QWidget):
         frame_entregue.setLayout(layout_frame_entregue)
         
         self.lw_entregue = QListWidget()
-        self.lw_entregue.setDragDropMode(QListWidget.DragDrop)
+        self.lw_entregue.setDragDropMode(QAbstractItemView.DragDrop)
         
         layout_entregue.addWidget(frame_entregue)
         layout_entregue.addWidget(self.lw_entregue)
@@ -103,6 +106,14 @@ class KanbanView(QWidget):
         self.lw_concluido.clear()
         self.lw_entregue.clear()
         
+        # Dicionário para armazenar totais
+        totais = {
+            'Aberto': 0,
+            'Em Andamento': 0,
+            'Concluído': 0,
+            'Entregue': 0
+        }
+        
         # Busca todas as OS
         cursor.execute('''
         SELECT os.id, os.status, c.nome, v.marca || ' ' || v.modelo, os.valor_total
@@ -111,14 +122,6 @@ class KanbanView(QWidget):
         JOIN clientes c ON v.cliente_id = c.id
         ORDER BY os.data_abertura
         ''')
-        
-        # Dicionário para armazenar totais
-        totais = {
-            'Aberto': 0,
-            'Em Andamento': 0,
-            'Concluído': 0,
-            'Entregue': 0
-        }
         
         for os_data in cursor.fetchall():
             os_id, status, cliente, veiculo, valor = os_data
