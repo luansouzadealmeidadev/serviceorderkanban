@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFormLayout, QLineEdit, 
-                            QTextEdit, QComboBox, QDoubleSpinBox, QPushButton, 
-                            QMessageBox, QDateEdit)
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFormLayout, QLineEdit,
+                             QTextEdit, QComboBox, QDoubleSpinBox, QPushButton,
+                             QMessageBox, QDateEdit)
 from PyQt5.QtCore import Qt, QDate, pyqtSignal
 import sqlite3
 from reportlab.pdfgen import canvas
@@ -28,8 +28,45 @@ class OSFormWindow(QWidget):
         self.cb_cliente.currentIndexChanged.connect(self.carregar_veiculos)
         form_layout.addRow("Veículo:", self.cb_veiculo)
         
-        # Restante do formulário permanece igual...
-        # ... (mantenha todo o resto do código original do OSFormWindow)
+        # Campos de datas
+        self.de_data_abertura = QDateEdit(QDate.currentDate())
+        self.de_data_abertura.setCalendarPopup(True)
+        form_layout.addRow("Data de Abertura:", self.de_data_abertura)
+        
+        self.de_data_entrega = QDateEdit(QDate.currentDate())
+        self.de_data_entrega.setCalendarPopup(True)
+        form_layout.addRow("Data de Entrega:", self.de_data_entrega)
+        
+        # Demais campos
+        self.te_descricao = QTextEdit()
+        form_layout.addRow("Descrição:", self.te_descricao)
+        
+        self.te_servicos = QTextEdit()
+        form_layout.addRow("Serviços Realizados:", self.te_servicos)
+        
+        self.te_pecas = QTextEdit()
+        form_layout.addRow("Peças Utilizadas:", self.te_pecas)
+        
+        self.sb_valor = QDoubleSpinBox()
+        self.sb_valor.setMaximum(100000)
+        self.sb_valor.setPrefix("R$ ")
+        self.sb_valor.setDecimals(2)
+        form_layout.addRow("Valor Total:", self.sb_valor)
+        
+        self.cb_status = QComboBox()
+        self.cb_status.addItems(["Aberta", "Em Andamento", "Concluída", "Cancelada"])
+        form_layout.addRow("Status:", self.cb_status)
+        
+        self.te_observacoes = QTextEdit()
+        form_layout.addRow("Observações:", self.te_observacoes)
+        
+        # Botão de salvar
+        self.btn_salvar = QPushButton("Salvar")
+        self.btn_salvar.clicked.connect(self.salvar_os)
+        form_layout.addRow(self.btn_salvar)
+        
+        layout.addLayout(form_layout)
+        self.setLayout(layout)
         
         if os_id:
             self.carregar_dados_os()
@@ -87,15 +124,12 @@ class OSFormWindow(QWidget):
                 cliente_idx = self.cb_cliente.findData(os_data[10])
                 if cliente_idx >= 0:
                     self.cb_cliente.setCurrentIndex(cliente_idx)
-                    # Força o carregamento dos veículos
                     self.carregar_veiculos()
                     
-                    # Seleciona o veículo correto
                     veiculo_idx = self.cb_veiculo.findData(os_data[1])
                     if veiculo_idx >= 0:
                         self.cb_veiculo.setCurrentIndex(veiculo_idx)
                 
-                # Preenche os demais campos
                 self.de_data_abertura.setDate(QDate.fromString(os_data[2], 'yyyy-MM-dd HH:mm:ss'))
                 if os_data[3]:
                     self.de_data_entrega.setDate(QDate.fromString(os_data[3], 'yyyy-MM-dd'))
@@ -111,4 +145,43 @@ class OSFormWindow(QWidget):
             if conn:
                 conn.close()
     
-    # ... (mantenha todos os outros métodos originais do OSFormWindow)
+    def salvar_os(self):
+        cliente_id = self.cb_cliente.currentData()
+        veiculo_id = self.cb_veiculo.currentData()
+        data_abertura = self.de_data_abertura.date().toString("yyyy-MM-dd HH:mm:ss")
+        data_entrega = self.de_data_entrega.date().toString("yyyy-MM-dd")
+        descricao = self.te_descricao.toPlainText()
+        servicos = self.te_servicos.toPlainText()
+        pecas = self.te_pecas.toPlainText()
+        valor = self.sb_valor.value()
+        status = self.cb_status.currentText()
+        observacoes = self.te_observacoes.toPlainText()
+        
+        try:
+            conn = sqlite3.connect('sistema_os.db')
+            cursor = conn.cursor()
+            
+            if self.os_id:
+                cursor.execute('''
+                    UPDATE ordens_servico SET
+                        veiculo_id=?, data_abertura=?, data_entrega=?, descricao=?,
+                        servicos=?, pecas=?, valor_total=?, status=?, observacoes=?
+                    WHERE id=?
+                ''', (veiculo_id, data_abertura, data_entrega, descricao, servicos, pecas, valor, status, observacoes, self.os_id))
+            else:
+                cursor.execute('''
+                    INSERT INTO ordens_servico (
+                        veiculo_id, data_abertura, data_entrega, descricao,
+                        servicos, pecas, valor_total, status, observacoes
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (veiculo_id, data_abertura, data_entrega, descricao, servicos, pecas, valor, status, observacoes))
+            
+            conn.commit()
+            self.os_salva.emit()
+            self.close()
+        except sqlite3.Error as e:
+            QMessageBox.warning(self, "Erro", f"Erro ao salvar OS:\n{str(e)}")
+        finally:
+            if conn:
+                conn.close()
+    

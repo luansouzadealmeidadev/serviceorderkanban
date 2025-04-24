@@ -1,8 +1,53 @@
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QGroupBox, 
-                            QListWidget, QLabel, QListWidgetItem, QAbstractItemView,
-                            QFrame)
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (
+    QWidget, QHBoxLayout, QVBoxLayout, QGroupBox,
+    QListWidget, QLabel, QListWidgetItem, QAbstractItemView,
+    QFrame
+)
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtGui import QFont, QColor
 import sqlite3
+
+class KanbanCard(QWidget):
+    def __init__(self, os_id, cliente, veiculo, valor):
+        super().__init__()
+        self.setup_ui(os_id, cliente, veiculo, valor)
+        
+    def setup_ui(self, os_id, cliente, veiculo, valor):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
+        
+        # Header
+        lbl_id = QLabel(f"<b>OS #{os_id}</b>")
+        lbl_id.setStyleSheet("color: #2c3e50; font-size: 12px;")
+        
+        # Cliente
+        lbl_cliente = QLabel(cliente)
+        lbl_cliente.setStyleSheet("color: #34495e; font-size: 11px;")
+        
+        # Veículo
+        lbl_veiculo = QLabel(veiculo)
+        lbl_veiculo.setStyleSheet("color: #7f8c8d; font-size: 10px;")
+        
+        # Valor
+        valor_formatado = f"{valor:,.2f}" if valor else "0,00"
+        lbl_valor = QLabel(f"<b>R$ {valor_formatado}</b>")
+        if valor and valor > 5000:
+            lbl_valor.setStyleSheet("color: #e74c3c; font-size: 12px;")
+        else:
+            lbl_valor.setStyleSheet("color: #27ae60; font-size: 12px;")
+        
+        layout.addWidget(lbl_id)
+        layout.addWidget(lbl_cliente)
+        layout.addWidget(lbl_veiculo)
+        layout.addWidget(lbl_valor)
+        
+        self.setLayout(layout)
+        self.setStyleSheet("""
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #dfe6e9;
+        """)
 
 class KanbanView(QWidget):
     atualizado = pyqtSignal()
@@ -13,173 +58,175 @@ class KanbanView(QWidget):
         self.load_kanban_data()
     
     def setup_ui(self):
-        layout = QHBoxLayout()
+        self.layout_principal = QHBoxLayout()
+        self.layout_principal.setContentsMargins(15, 15, 15, 15)
+        self.layout_principal.setSpacing(20)
         
-        # Coluna "Aberto"
-        self.gb_aberto = QGroupBox("Aberto")
-        layout_aberto = QVBoxLayout()
+        # Configuração das colunas
+        colunas = [
+            ("Aberto", "#3498db"),
+            ("Em Andamento", "#f39c12"),
+            ("Concluído", "#2ecc71"),
+            ("Entregue", "#9b59b6")
+        ]
         
-        # Frame para o contador
-        frame_aberto = QFrame()
-        layout_frame_aberto = QHBoxLayout()
-        self.lbl_total_aberto = QLabel("Total: R$ 0,00")
-        layout_frame_aberto.addWidget(self.lbl_total_aberto)
-        frame_aberto.setLayout(layout_frame_aberto)
+        for titulo, cor in colunas:
+            coluna = self.criar_coluna(titulo, cor)
+            self.layout_principal.addWidget(coluna)
         
-        self.lw_aberto = QListWidget()
-        self.lw_aberto.setDragDropMode(QAbstractItemView.DragDrop)
-        
-        layout_aberto.addWidget(frame_aberto)
-        layout_aberto.addWidget(self.lw_aberto)
-        self.gb_aberto.setLayout(layout_aberto)
-        layout.addWidget(self.gb_aberto)
-        
-        # Coluna "Em Andamento"
-        self.gb_andamento = QGroupBox("Em Andamento")
-        layout_andamento = QVBoxLayout()
-        
-        frame_andamento = QFrame()
-        layout_frame_andamento = QHBoxLayout()
-        self.lbl_total_andamento = QLabel("Total: R$ 0,00")
-        layout_frame_andamento.addWidget(self.lbl_total_andamento)
-        frame_andamento.setLayout(layout_frame_andamento)
-        
-        self.lw_andamento = QListWidget()
-        self.lw_andamento.setDragDropMode(QAbstractItemView.DragDrop)
-        
-        layout_andamento.addWidget(frame_andamento)
-        layout_andamento.addWidget(self.lw_andamento)
-        self.gb_andamento.setLayout(layout_andamento)
-        layout.addWidget(self.gb_andamento)
-        
-        # Coluna "Concluído"
-        self.gb_concluido = QGroupBox("Concluído")
-        layout_concluido = QVBoxLayout()
-        
-        frame_concluido = QFrame()
-        layout_frame_concluido = QHBoxLayout()
-        self.lbl_total_concluido = QLabel("Total: R$ 0,00")
-        layout_frame_concluido.addWidget(self.lbl_total_concluido)
-        frame_concluido.setLayout(layout_frame_concluido)
-        
-        self.lw_concluido = QListWidget()
-        self.lw_concluido.setDragDropMode(QAbstractItemView.DragDrop)
-        
-        layout_concluido.addWidget(frame_concluido)
-        layout_concluido.addWidget(self.lw_concluido)
-        self.gb_concluido.setLayout(layout_concluido)
-        layout.addWidget(self.gb_concluido)
-        
-        # Coluna "Entregue"
-        self.gb_entregue = QGroupBox("Entregue")
-        layout_entregue = QVBoxLayout()
-        
-        frame_entregue = QFrame()
-        layout_frame_entregue = QHBoxLayout()
-        self.lbl_total_entregue = QLabel("Total: R$ 0,00")
-        layout_frame_entregue.addWidget(self.lbl_total_entregue)
-        frame_entregue.setLayout(layout_frame_entregue)
-        
-        self.lw_entregue = QListWidget()
-        self.lw_entregue.setDragDropMode(QAbstractItemView.DragDrop)
-        
-        layout_entregue.addWidget(frame_entregue)
-        layout_entregue.addWidget(self.lw_entregue)
-        self.gb_entregue.setLayout(layout_entregue)
-        layout.addWidget(self.gb_entregue)
-        
-        self.setLayout(layout)
-        
-        # Conectar eventos de mudança
-        self.lw_aberto.model().rowsMoved.connect(lambda: self.atualizar_status('Aberto', self.lw_aberto))
-        self.lw_andamento.model().rowsMoved.connect(lambda: self.atualizar_status('Em Andamento', self.lw_andamento))
-        self.lw_concluido.model().rowsMoved.connect(lambda: self.atualizar_status('Concluído', self.lw_concluido))
-        self.lw_entregue.model().rowsMoved.connect(lambda: self.atualizar_status('Entregue', self.lw_entregue))
+        self.setLayout(self.layout_principal)
     
+    def criar_coluna(self, titulo, cor):
+        group_box = QGroupBox(titulo)
+        group_box.setStyleSheet(f"""
+            QGroupBox {{
+                font-weight: bold;
+                color: {cor};
+                font-size: 14px;
+            }}
+        """)
+        
+        layout = QVBoxLayout()
+        layout.setContentsMargins(8, 25, 8, 8)
+        layout.setSpacing(10)
+        
+        # Frame do contador
+        frame_contador = QFrame()
+        frame_contador.setStyleSheet("background-color: #f8f9fa; border-radius: 4px;")
+        layout_contador = QHBoxLayout()
+        layout_contador.setContentsMargins(8, 4, 8, 4)
+        
+        lbl_total = QLabel("Total:")
+        lbl_total.setStyleSheet("color: #7f8c8d;")
+        
+        total_widget = QLabel("R$ 0,00")
+        total_widget.setStyleSheet("font-weight: bold; color: #2c3e50;")
+        total_widget.setObjectName(f"lbl_total_{titulo.lower().replace(' ', '_')}")
+        
+        layout_contador.addWidget(lbl_total)
+        layout_contador.addStretch()
+        layout_contador.addWidget(total_widget)
+        frame_contador.setLayout(layout_contador)
+        
+        # Lista de itens
+        list_widget = QListWidget()
+        list_widget.setDragDropMode(QAbstractItemView.DragDrop)
+        list_widget.setStyleSheet("""
+            QListWidget {
+                background-color: transparent;
+                border: none;
+            }
+            QListWidget::item {
+                background-color: white;
+                border-radius: 8px;
+                margin: 6px 0;
+                border: 1px solid #dfe6e9;
+            }
+            QListWidget::item:hover {
+                border: 1px solid #3498db;
+                background-color: #f1f9ff;
+            }
+        """)
+        list_widget.setObjectName(f"lw_{titulo.lower().replace(' ', '_')}")
+        
+        layout.addWidget(frame_contador)
+        layout.addWidget(list_widget)
+        group_box.setLayout(layout)
+        
+        return group_box
+
     def load_kanban_data(self):
-        conn = sqlite3.connect('sistema_os.db')
-        cursor = conn.cursor()
-        
-        # Limpa as listas
-        self.lw_aberto.clear()
-        self.lw_andamento.clear()
-        self.lw_concluido.clear()
-        self.lw_entregue.clear()
-        
-        # Dicionário para armazenar totais
-        totais = {
-            'Aberto': 0,
-            'Em Andamento': 0,
-            'Concluído': 0,
-            'Entregue': 0
-        }
-        
-        # Busca todas as OS
-        cursor.execute('''
-        SELECT os.id, os.status, c.nome, v.marca || ' ' || v.modelo, os.valor_total
-        FROM ordens_servico os
-        JOIN veiculos v ON os.veiculo_id = v.id
-        JOIN clientes c ON v.cliente_id = c.id
-        ORDER BY os.data_abertura
-        ''')
-        
-        for os_data in cursor.fetchall():
-            os_id, status, cliente, veiculo, valor = os_data
+        conn = None
+        try:
+            conn = sqlite3.connect('sistema_os.db')
+            cursor = conn.cursor()
             
-            # Acumula o valor total por status
-            if status in totais:
-                totais[status] += valor
+            # Consulta para obter todas as OS com status e informações relevantes
+            cursor.execute('''
+            SELECT os.id, c.nome, v.marca || ' ' || v.modelo, os.valor_total, os.status
+            FROM ordens_servico os
+            JOIN veiculos v ON os.veiculo_id = v.id
+            JOIN clientes c ON v.cliente_id = c.id
+            ORDER BY os.data_abertura DESC
+            ''')
             
-            item = QListWidgetItem()
-            widget = QWidget()
-            layout = QVBoxLayout()
+            ordens = cursor.fetchall()
             
-            lbl_id = QLabel(f"OS: {os_id}")
-            lbl_cliente = QLabel(f"Cliente: {cliente}")
-            lbl_veiculo = QLabel(f"Veículo: {veiculo}")
-            lbl_valor = QLabel(f"Valor: R$ {valor:.2f}")
+            # Limpa todas as listas primeiro
+            for status in ["aberto", "em_andamento", "concluído", "entregue"]:
+                list_widget = self.findChild(QListWidget, f"lw_{status}")
+                if list_widget:
+                    list_widget.clear()
+                total_label = self.findChild(QLabel, f"lbl_total_{status}")
+                if total_label:
+                    total_label.setText("R$ 0,00")
             
-            for lbl in [lbl_id, lbl_cliente, lbl_veiculo, lbl_valor]:
-                lbl.setAlignment(Qt.AlignCenter)
-                layout.addWidget(lbl)
+            # Dicionário para acumular os totais por status
+            totais = {
+                "Aberto": 0.0,
+                "Em Andamento": 0.0,
+                "Concluída": 0.0,
+                "Concluído": 0.0,
+                "Entregue": 0.0,
+                "Cancelada": 0.0
+            }
             
-            widget.setLayout(layout)
-            item.setSizeHint(widget.sizeHint())
+            # Adiciona cada OS na coluna correspondente
+            for os_id, cliente, veiculo, valor, status in ordens:
+                # Normaliza o status (remove acentos e coloca em minúsculo para comparação)
+                status_normalizado = status.lower().replace("ê", "e").replace("í", "i")
+                
+                # Mapeia os status do banco para os status do Kanban
+                kanban_status = {
+                    "aberta": "aberto",
+                    "aberto": "aberto",
+                    "em andamento": "em_andamento",
+                    "concluída": "concluído",
+                    "concluido": "concluído",
+                    "entregue": "entregue",
+                    "cancelada": "concluído"
+                }.get(status_normalizado, "aberto")
+                
+                # Adiciona ao total do status
+                if status in totais:
+                    totais[status] += valor if valor else 0
+                else:
+                    # Se o status não existir no dicionário, adiciona ao "aberto"
+                    totais["Aberto"] += valor if valor else 0
+                
+                # Encontra a QListWidget correspondente
+                list_widget = self.findChild(QListWidget, f"lw_{kanban_status}")
+                if list_widget:
+                    # Cria o card da OS
+                    card = KanbanCard(os_id, cliente, veiculo, valor)
+                    
+                    # Cria um item para a lista
+                    item = QListWidgetItem()
+                    item.setSizeHint(QSize(200, 100))
+                    
+                    # Adiciona o item à lista
+                    list_widget.addItem(item)
+                    list_widget.setItemWidget(item, card)
             
-            if status == 'Aberto':
-                self.lw_aberto.addItem(item)
-                self.lw_aberto.setItemWidget(item, widget)
-            elif status == 'Em Andamento':
-                self.lw_andamento.addItem(item)
-                self.lw_andamento.setItemWidget(item, widget)
-            elif status == 'Concluído':
-                self.lw_concluido.addItem(item)
-                self.lw_concluido.setItemWidget(item, widget)
-            elif status == 'Entregue':
-                self.lw_entregue.addItem(item)
-                self.lw_entregue.setItemWidget(item, widget)
+            # Atualiza os totais em cada coluna
+            for kanban_status in ["aberto", "em_andamento", "concluído", "entregue"]:
+                total_label = self.findChild(QLabel, f"lbl_total_{kanban_status}")
+                if total_label:
+                    # Soma todos os status que mapeiam para esta coluna
+                    total = 0.0
+                    if kanban_status == "aberto":
+                        total = totais.get("Aberto", 0.0) + totais.get("Aberta", 0.0)
+                    elif kanban_status == "em_andamento":
+                        total = totais.get("Em Andamento", 0.0)
+                    elif kanban_status == "concluído":
+                        total = totais.get("Concluída", 0.0) + totais.get("Concluído", 0.0) + totais.get("Cancelada", 0.0)
+                    elif kanban_status == "entregue":
+                        total = totais.get("Entregue", 0.0)
+                    
+                    total_label.setText(f"R$ {total:,.2f}")
         
-        # Atualiza os labels com os totais
-        self.lbl_total_aberto.setText(f"Total: R$ {totais['Aberto']:,.2f}")
-        self.lbl_total_andamento.setText(f"Total: R$ {totais['Em Andamento']:,.2f}")
-        self.lbl_total_concluido.setText(f"Total: R$ {totais['Concluído']:,.2f}")
-        self.lbl_total_entregue.setText(f"Total: R$ {totais['Entregue']:,.2f}")
-        
-        conn.close()
-    
-    def atualizar_status(self, novo_status, list_widget):
-        conn = sqlite3.connect('sistema_os.db')
-        cursor = conn.cursor()
-        
-        for i in range(list_widget.count()):
-            item = list_widget.item(i)
-            widget = list_widget.itemWidget(item)
-            lbl_id = widget.findChild(QLabel)
-            
-            if lbl_id:
-                os_id = lbl_id.text().split(": ")[1]
-                cursor.execute("UPDATE ordens_servico SET status=? WHERE id=?", (novo_status, os_id))
-        
-        conn.commit()
-        conn.close()
-        self.load_kanban_data()  # Recarrega os dados para atualizar os totais
+        except sqlite3.Error as e:
+            print(f"Erro ao carregar dados do Kanban: {str(e)}")
+        finally:
+            if conn:
+                conn.close()

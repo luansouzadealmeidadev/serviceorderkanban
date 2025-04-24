@@ -86,4 +86,5 @@ class MainWindow(QMainWindow):
                 self.table_os.setItem(row_num, col_num, item)
         
         conn.close()
+        # Atualiza o Kanban quando os dados da OS são carregados
         self.tab_kanban.load_kanban_data()

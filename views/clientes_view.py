@@ -1,7 +1,11 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableView, QPushButton, 
-                            QHeaderView, QMessageBox, QHBoxLayout)
+                            QHeaderView, QMessageBox, QHBoxLayout, QFrame, 
+                            QLabel, QDialog, QFormLayout, QLineEdit, 
+                            QDialogButtonBox)
 from PyQt5.QtSql import QSqlTableModel, QSqlDatabase
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
+import qtawesome as qta
 import sqlite3
 
 class ClientesView(QWidget):
@@ -11,26 +15,46 @@ class ClientesView(QWidget):
     
     def setup_ui(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
         
-        # Botões
+        # Cabeçalho
+        header = QFrame()
+        header_layout = QHBoxLayout()
+        
+        lbl_title = QLabel("Clientes")
+        lbl_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
+        
         btn_layout = QHBoxLayout()
-        btn_novo = QPushButton("Novo Cliente")
+        btn_layout.setSpacing(10)
+        
+        # Botões com ícones
+        btn_novo = QPushButton(qta.icon("fa5s.plus"), "Novo Cliente")
         btn_novo.clicked.connect(self.novo_cliente)
-        btn_editar = QPushButton("Editar")
+        
+        btn_editar = QPushButton(qta.icon("fa5s.edit"), "Editar")
         btn_editar.clicked.connect(self.editar_cliente)
-        btn_excluir = QPushButton("Excluir")
+        
+        btn_excluir = QPushButton(qta.icon("fa5s.trash"), "Excluir")
         btn_excluir.clicked.connect(self.excluir_cliente)
         
         btn_layout.addWidget(btn_novo)
         btn_layout.addWidget(btn_editar)
         btn_layout.addWidget(btn_excluir)
         
+        header_layout.addWidget(lbl_title)
+        header_layout.addStretch()
+        header_layout.addLayout(btn_layout)
+        header.setLayout(header_layout)
+        
         # Tabela
         self.tabela = QTableView()
         self.tabela.setSelectionBehavior(QTableView.SelectRows)
+        self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tabela.verticalHeader().setVisible(False)
         self.carregar_dados()
         
-        layout.addLayout(btn_layout)
+        layout.addWidget(header)
         layout.addWidget(self.tabela)
         self.setLayout(layout)
     
@@ -42,19 +66,17 @@ class ClientesView(QWidget):
             QMessageBox.critical(self, "Erro", "Não foi possível abrir o banco de dados")
             return
         
-        model = QSqlTableModel()
-        model.setTable("clientes")
-        model.select()
-        model.setEditStrategy(QSqlTableModel.OnFieldChange)
+        self.model = QSqlTableModel()
+        self.model.setTable("clientes")
+        self.model.select()
+        self.model.setEditStrategy(QSqlTableModel.OnFieldChange)
         
-        self.tabela.setModel(model)
-        self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tabela.setModel(self.model)
     
     def novo_cliente(self):
-        from PyQt5.QtWidgets import QDialog, QFormLayout, QLineEdit, QDialogButtonBox
-        
         dialog = QDialog(self)
         dialog.setWindowTitle("Novo Cliente")
+        dialog.setWindowIcon(qta.icon("fa5s.user-plus"))
         
         layout = QFormLayout()
         
@@ -79,6 +101,11 @@ class ClientesView(QWidget):
         dialog.exec_()
     
     def salvar_cliente(self, dialog):
+        # Validação básica
+        if not self.le_nome.text():
+            QMessageBox.warning(self, "Aviso", "O nome é obrigatório")
+            return
+            
         conn = sqlite3.connect('sistema_os.db')
         cursor = conn.cursor()
         
@@ -94,7 +121,7 @@ class ClientesView(QWidget):
                 self.le_endereco.text()
             ))
             conn.commit()
-            self.carregar_dados()
+            self.carregar_dados()  # Recarrega os dados
             dialog.accept()
         except sqlite3.Error as e:
             QMessageBox.warning(self, "Erro", f"Erro ao salvar cliente:\n{str(e)}")
@@ -108,6 +135,7 @@ class ClientesView(QWidget):
             return
         
         # A edição é feita diretamente na tabela graças ao QSqlTableModel
+        QMessageBox.information(self, "Editar", "Clique duas vezes na célula que deseja editar")
     
     def excluir_cliente(self):
         selected = self.tabela.selectionModel().selectedRows()
